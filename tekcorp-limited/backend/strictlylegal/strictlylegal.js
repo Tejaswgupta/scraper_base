@@ -32,14 +32,11 @@ async function getData(url) {
         const response = await axios.get(url);
         const $ = cheerio.load(response.data);
 
-        const title = $('.title').text().trim();
+        const title = $('.entry-title').text().trim(); 
+        const paragraphs = $('.entry-content p, .entry-content h2, .entry-content ul li').map((index, element) => $(element).text()).get();
 
-        // Select and extract text from <p> elements inside the div with id 'content'
-        const paragraphs = $('#content p').map((index, element) => $(element).text()).get();
-  
-        // Combine the text from paragraphs and list items
-        const dataString = paragraphs.concat(listItems).join('');
-
+        const dataString = paragraphs.join('');
+        
         const newsItem = {
             'headline': title, 
             'data': dataString
@@ -48,7 +45,7 @@ async function getData(url) {
         return newsItem;
     } catch (error) {
         console.error('Error fetching data from:', url);
-        return null; // Return null for unsuccessful requests
+        return {}; // Return null for unsuccessful requests
     }
 }
 
@@ -57,22 +54,22 @@ async function main() {
 
     while (true) {
         const baseUrl = 'https://strictlylegal.in/blog/';
-        let targetUrl = `${baseUrl}/`;
+        let targetUrl = `${baseUrl}`;
  
         try {
             const response = await axios.get(targetUrl);
             const htmlContent = response.data;
 
             // Save HTML content to a file
-            const fileName = `strictlylegal.html`;  // for sitemap, better for web scrawling
+            const fileName = `strictlylegal.html`;  // for sitemap, better for web crawling
             const filePath = path.join(__dirname, fileName);
 
             fs.writeFileSync(filePath, htmlContent, 'utf-8');
 
             // Continue with the rest of your processing
             const $ = cheerio.load(htmlContent);
-            const elements = $('h2.title a').map((index, element) => $(element).attr('href')).get();
-            
+            const elements = $('h4.uagb-post__title a').map((index, element) => $(element).attr('href')).get();
+          
             const tasks = elements.map(element => getData(element));
             const dataList = await Promise.all(tasks);
 

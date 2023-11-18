@@ -26,19 +26,22 @@ function updateFile(dataList) {
 
     fs.writeFileSync(filePath, JSON.stringify(combinedData, null, 2), 'utf-8');
 }
- 
+
 async function getData(url) {
     try {
         const response = await axios.get(url);
         const $ = cheerio.load(response.data);
-
-        const title = $('.title').text().trim();
-
-        // Select and extract text from <p> elements inside the div with id 'content'
-        const paragraphs = $('#content p').map((index, element) => $(element).text()).get();
-  
-        // Combine the text from paragraphs and list items
-        const dataString = paragraphs.concat(listItems).join('');
+ 
+        const title = $('.post-title').text().trim();  
+        const paragraphs = $('.post-content h2, .post-content p, .post-content ul li').map((index, element) => $(element).text()).get();
+    
+        let dataString = paragraphs.join('');
+ 
+        dataString = dataString.replace(/<img.*?>/g, '');
+ 
+        if (title.startsWith('/*! elementor') && dataString === "") {
+            return {};
+        }
 
         const newsItem = {
             'headline': title, 
@@ -48,16 +51,16 @@ async function getData(url) {
         return newsItem;
     } catch (error) {
         console.error('Error fetching data from:', url);
-        return null; // Return null for unsuccessful requests
+        return {}; // Return null for unsuccessful requests
     }
 }
 
 async function main() {
     let i = 1;
 
-    while (i <= 42) {
+    while (true) {
         const baseUrl = 'https://lawctopus.com/clatalogue/clat-pg/';
-        let targetUrl = `${baseUrl}/`;
+        let targetUrl = `${baseUrl}`;
  
         try {
             const response = await axios.get(targetUrl);
@@ -71,9 +74,16 @@ async function main() {
 
             // Continue with the rest of your processing
             const $ = cheerio.load(htmlContent);
-            const elements = $('h2.title a').map((index, element) => $(element).attr('href')).get();
-            
-            const tasks = elements.map(element => getData(element));
+            const elements = $('section div a').map((index, element) => {
+                const href = $(element).attr('href');
+                // Add the prefix only if it starts with '/clatalogue'
+                return href.startsWith('/clatalogue') ? `https://lawctopus.com${href}` : null;
+            }).get();
+
+            // Filter out null values (i.e., URLs that didn't start with '/clatalogue')
+            const filteredElements = elements.filter(element => element !== null);
+  
+            const tasks = filteredElements.map(element => getData(element));
             const dataList = await Promise.all(tasks);
 
             updateFile(dataList);

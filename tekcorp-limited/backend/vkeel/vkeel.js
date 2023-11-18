@@ -41,7 +41,7 @@ async function getData(url) {
         return newsItem;
     } catch (error) {
         console.error('Error fetching data from:', url);
-        return null; // Return null for unsuccessful requests
+        return {}; // Return null for unsuccessful requests
     }
 }
 

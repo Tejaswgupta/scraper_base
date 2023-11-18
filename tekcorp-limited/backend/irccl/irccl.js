@@ -27,57 +27,62 @@ function updateFile(dataList) {
     fs.writeFileSync(filePath, JSON.stringify(combinedData, null, 2), 'utf-8');
 }
  
-async function getData(url) {
+async function getData(headings, paragraphs) {
     try {
-        const response = await axios.get(url);
-        const $ = cheerio.load(response.data);
+        // Ensure both headings and paragraphs have at least one element
+        if (headings.length === 0 || paragraphs.length === 0) {
+            console.error('Error: Empty headings or paragraphs arrays');
+            return {};
+        }
 
-        const title = $('.title').text().trim();
+        const newsItems = [];
 
-        // Select and extract text from <p> elements inside the div with id 'content'
-        const paragraphs = $('#content p').map((index, element) => $(element).text()).get();
+        // Loop over the arrays and create pairs
+        for (let i = 0; i < Math.min(headings.length, paragraphs.length); i++) {
+            const headline = headings[i];
+            const data = paragraphs[i];
+
+            const newsItem = {
+                'headline': headline,
+                'paragraph': data
+            };
+
+            newsItems.push(newsItem);
+        }
   
-        // Combine the text from paragraphs and list items
-        const dataString = paragraphs.concat(listItems).join('');
-
-        const newsItem = {
-            'headline': title, 
-            'data': dataString
-        };
-
-        return newsItem;
+        return newsItems;
     } catch (error) {
-        console.error('Error fetching data from:', url);
-        return null; // Return null for unsuccessful requests
+        console.error('Error:', error.message);
+        return {};
     }
 }
 
 async function main() {
     let i = 1;
 
-    while (i <= 42) {
+    while (true) {
         const baseUrl = 'https://www.irccl.in/blog';
-        let targetUrl = `${baseUrl}/`;
- 
+        let targetUrl = `${baseUrl}`;
+
         try {
             const response = await axios.get(targetUrl);
             const htmlContent = response.data;
 
             // Save HTML content to a file
-            const fileName = `irccl.html`;  // for sitemap, better for web scrawling
+            const fileName = `irccl.html`;  // for sitemap, better for web crawling
             const filePath = path.join(__dirname, fileName);
 
             fs.writeFileSync(filePath, htmlContent, 'utf-8');
 
             // Continue with the rest of your processing
             const $ = cheerio.load(htmlContent);
-            const elements = $('h2.title a').map((index, element) => $(element).attr('href')).get();
-            
-            const tasks = elements.map(element => getData(element));
-            const dataList = await Promise.all(tasks);
 
-            updateFile(dataList);
+            const headings = $('.bD0vt9').map((index, element) => $(element).text()).get();
+            const paragraphs = $('.BOlnTh').map((index, element) => $(element).text()).get();
  
+            const newsItems = await getData(headings, paragraphs);
+ 
+            updateFile(newsItems)
             i++;
         } catch (error) {
             console.error('Error:', error.message);

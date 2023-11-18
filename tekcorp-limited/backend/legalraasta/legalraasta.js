@@ -26,19 +26,17 @@ function updateFile(dataList) {
 
     fs.writeFileSync(filePath, JSON.stringify(combinedData, null, 2), 'utf-8');
 }
- 
+
 async function getData(url) {
     try {
         const response = await axios.get(url);
         const $ = cheerio.load(response.data);
 
-        const title = $('.title').text().trim();
-
-        // Select and extract text from <p> elements inside the div with id 'content'
-        const paragraphs = $('#content p').map((index, element) => $(element).text()).get();
+        const title = $('.entry-title').text().trim(); 
+        const paragraphs = $('.post-content p, .post-content h2, .post-content li').map((index, element) => $(element).text()).get();
   
         // Combine the text from paragraphs and list items
-        const dataString = paragraphs.concat(listItems).join('');
+        const dataString = paragraphs.join('');
 
         const newsItem = {
             'headline': title, 
@@ -48,17 +46,20 @@ async function getData(url) {
         return newsItem;
     } catch (error) {
         console.error('Error fetching data from:', url);
-        return null; // Return null for unsuccessful requests
+        return {}; // Return null for unsuccessful requests
     }
 }
 
 async function main() {
     let i = 1;
 
-    while (true) {
+    while (i <= 174) {
         const baseUrl = 'https://www.legalraasta.com/blog/';
-        let targetUrl = `${baseUrl}/`;
+        let targetUrl = `${baseUrl}`;
  
+        if(i > 1) { 
+            targetUrl = `${baseUrl}page/${i}/`
+        }
         try {
             const response = await axios.get(targetUrl);
             const htmlContent = response.data;
@@ -71,7 +72,7 @@ async function main() {
 
             // Continue with the rest of your processing
             const $ = cheerio.load(htmlContent);
-            const elements = $('h2.title a').map((index, element) => $(element).attr('href')).get();
+            const elements = $('h2.entry-title a').map((index, element) => $(element).attr('href')).get();
             
             const tasks = elements.map(element => getData(element));
             const dataList = await Promise.all(tasks);

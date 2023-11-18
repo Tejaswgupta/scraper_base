@@ -32,13 +32,10 @@ async function getData(url) {
         const response = await axios.get(url);
         const $ = cheerio.load(response.data);
 
-        const title = $('.title').text().trim();
-
-        // Select and extract text from <p> elements inside the div with id 'content'
-        const paragraphs = $('#content p').map((index, element) => $(element).text()).get();
-  
-        // Combine the text from paragraphs and list items
-        const dataString = paragraphs.concat(listItems).join('');
+        const title = $('.blog-top h3').text().trim(); 
+        const paragraphs = $('.content p, .content ul li').map((index, element) => $(element).text()).get();
+   
+        const dataString = paragraphs.join('');
 
         const newsItem = {
             'headline': title, 
@@ -48,7 +45,7 @@ async function getData(url) {
         return newsItem;
     } catch (error) {
         console.error('Error fetching data from:', url);
-        return null; // Return null for unsuccessful requests
+        return {}; // Return null for unsuccessful requests
     }
 }
 
@@ -57,21 +54,25 @@ async function main() {
 
     while (true) {
         const baseUrl = 'https://www.lawyered.in/legal-disrupt/';
-        let targetUrl = `${baseUrl}/`;
+        let targetUrl = `${baseUrl}`;
  
         try {
             const response = await axios.get(targetUrl);
             const htmlContent = response.data;
 
             // Save HTML content to a file
-            const fileName = `lawyered.html`;  // for sitemap, better for web scrawling
+            const fileName = `lawyered.html`;  // for sitemap, better for web crawling
             const filePath = path.join(__dirname, fileName);
 
             fs.writeFileSync(filePath, htmlContent, 'utf-8');
-
-            // Continue with the rest of your processing
+ 
             const $ = cheerio.load(htmlContent);
-            const elements = $('h2.title a').map((index, element) => $(element).attr('href')).get();
+            
+            const elements = $('.content h5 a').map((index, element) => {
+                const href = $(element).attr('href');
+                // Add the prefix only if it doesn't start with 'http'
+                return href.startsWith('http') ? href : `https://www.lawyered.in${href}`;
+            }).get();
             
             const tasks = elements.map(element => getData(element));
             const dataList = await Promise.all(tasks);

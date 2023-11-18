@@ -26,36 +26,34 @@ function updateFile(dataList) {
 
     fs.writeFileSync(filePath, JSON.stringify(combinedData, null, 2), 'utf-8');
 }
- 
+
 async function getData(url) {
     try {
         const response = await axios.get(url);
         const $ = cheerio.load(response.data);
 
-        const title = $('.title').text().trim();
-
-        // Select and extract text from <p> elements inside the div with id 'content'
-        const paragraphs = $('#content p').map((index, element) => $(element).text()).get();
-  
-        // Combine the text from paragraphs and list items
-        const dataString = paragraphs.concat(listItems).join('');
+        const title = $('.entry-title').text().trim();
+ 
+        const paragraphs = $('.entry-content p').map((index, element) => $(element).text()).get();
+   
+        const dataString = paragraphs.join('');
 
         const newsItem = {
             'headline': title, 
-            'data': dataString
+            'paragraph': dataString
         };
 
         return newsItem;
     } catch (error) {
         console.error('Error fetching data from:', url);
-        return null; // Return null for unsuccessful requests
+        return {}; // Return null for unsuccessful requests
     }
 }
 
 async function main() {
     let i = 1;
 
-    while (i <= 42) {
+    while (true) {
         const baseUrl = 'https://indiacorplaw.in';
         let targetUrl = `${baseUrl}/`;
  
@@ -71,7 +69,7 @@ async function main() {
 
             // Continue with the rest of your processing
             const $ = cheerio.load(htmlContent);
-            const elements = $('h2.title a').map((index, element) => $(element).attr('href')).get();
+            const elements = $('h2.entry-title a').map((index, element) => $(element).attr('href')).get();
             
             const tasks = elements.map(element => getData(element));
             const dataList = await Promise.all(tasks);

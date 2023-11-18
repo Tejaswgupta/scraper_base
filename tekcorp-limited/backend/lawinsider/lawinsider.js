@@ -26,19 +26,16 @@ function updateFile(dataList) {
 
     fs.writeFileSync(filePath, JSON.stringify(combinedData, null, 2), 'utf-8');
 }
- 
+
 async function getData(url) {
     try {
         const response = await axios.get(url);
         const $ = cheerio.load(response.data);
 
-        const title = $('.title').text().trim();
+        const title = $('.entry-title').text().trim(); 
+        const paragraphs = $('.entry-content p').map((index, element) => $(element).text()).get();
 
-        // Select and extract text from <p> elements inside the div with id 'content'
-        const paragraphs = $('#content p').map((index, element) => $(element).text()).get();
-  
-        // Combine the text from paragraphs and list items
-        const dataString = paragraphs.concat(listItems).join('');
+        const dataString = paragraphs.join('');
 
         const newsItem = {
             'headline': title, 
@@ -48,17 +45,17 @@ async function getData(url) {
         return newsItem;
     } catch (error) {
         console.error('Error fetching data from:', url);
-        return null; // Return null for unsuccessful requests
+        return {}; 
     }
 }
 
 async function main() {
     let i = 1;
 
-    while (i <= 42) {
+    while (i <= 715) {
         const baseUrl = 'https://www.lawinsider.in/';
-        let targetUrl = `${baseUrl}/`;
- 
+        let targetUrl = i > 1 ? `${baseUrl}page/${i}` : baseUrl;
+
         try {
             const response = await axios.get(targetUrl);
             const htmlContent = response.data;
@@ -69,15 +66,16 @@ async function main() {
 
             fs.writeFileSync(filePath, htmlContent, 'utf-8');
 
-            // Continue with the rest of your processing
             const $ = cheerio.load(htmlContent);
-            const elements = $('h2.title a').map((index, element) => $(element).attr('href')).get();
-            
-            const tasks = elements.map(element => getData(element));
+            const elements = $('.read-title h4 a').map((index, element) => $(element).attr('href')).get();
+ 
+            const filteredElements = elements.filter(element => !element.startsWith('https://www.lawinsider.in/news'));
+
+            const tasks = filteredElements.map(element => getData(element));
             const dataList = await Promise.all(tasks);
 
             updateFile(dataList);
- 
+
             i++;
         } catch (error) {
             console.error('Error:', error.message);

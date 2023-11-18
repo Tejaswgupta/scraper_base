@@ -1,4 +1,6 @@
-// https://barandbench.com - barandbench, Web Scrapping
+// https://barandbench.com - barandbench, Web Scrapping 
+
+// * Ask Tegas, which category to target * 
 
 const axios = require('axios');
 const path = require('path');
@@ -32,12 +34,9 @@ async function getData(url) {
         const response = await axios.get(url);
         const $ = cheerio.load(response.data);
 
-        const title = $('.title').text().trim();
-
-        // Select and extract text from <p> elements inside the div with id 'content'
-        const paragraphs = $('#content p').map((index, element) => $(element).text()).get();
-  
-        // Combine the text from paragraphs and list items
+        const title = $('.arrow-component h1').text().trim(); 
+        const paragraphs = $('.arrow-component p').map((index, element) => $(element).text()).get();
+   
         const dataString = paragraphs.concat(listItems).join('');
 
         const newsItem = {
@@ -48,17 +47,17 @@ async function getData(url) {
         return newsItem;
     } catch (error) {
         console.error('Error fetching data from:', url);
-        return null; // Return null for unsuccessful requests
+        return {}; // Return null for unsuccessful requests
     }
 }
 
 async function main() {
     let i = 1;
 
-    while (i <= 42) {
-        const baseUrl = 'https://barandbench.com';
-        let targetUrl = `${baseUrl}/`;
- 
+    while (true) {
+        const baseUrl = 'https://www.barandbench.com';
+        let targetUrl = `${baseUrl}`;
+
         try {
             const response = await axios.get(targetUrl);
             const htmlContent = response.data;
@@ -71,13 +70,19 @@ async function main() {
 
             // Continue with the rest of your processing
             const $ = cheerio.load(htmlContent);
-            const elements = $('h2.title a').map((index, element) => $(element).attr('href')).get();
-            
+
+            // Updated selector to target the anchor tags directly
+            const elements = $('.arrow-component a').map((index, element) => {
+                const href = $(element).attr('href');
+                // Filter out URLs that don't start with 'https://www.barandbench.com/news'
+                return href.startsWith('https://www.barandbench.com/news') ? href : null;
+            }).get().filter(Boolean);
+   
             const tasks = elements.map(element => getData(element));
             const dataList = await Promise.all(tasks);
 
             updateFile(dataList);
- 
+
             i++;
         } catch (error) {
             console.error('Error:', error.message);

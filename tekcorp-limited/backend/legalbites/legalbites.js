@@ -32,13 +32,10 @@ async function getData(url) {
         const response = await axios.get(url);
         const $ = cheerio.load(response.data);
 
-        const title = $('.title').text().trim();
-
-        // Select and extract text from <p> elements inside the div with id 'content'
-        const paragraphs = $('#content p').map((index, element) => $(element).text()).get();
-  
-        // Combine the text from paragraphs and list items
-        const dataString = paragraphs.concat(listItems).join('');
+        const title = $('.page-title').text().trim(); 
+        const paragraphs = $('.entry-main-content p').map((index, element) => $(element).text()).get();
+   
+        const dataString = paragraphs.join('');
 
         const newsItem = {
             'headline': title, 
@@ -48,36 +45,46 @@ async function getData(url) {
         return newsItem;
     } catch (error) {
         console.error('Error fetching data from:', url);
-        return null; // Return null for unsuccessful requests
+        return {}; // Return null for unsuccessful requests
     }
 }
 
 async function main() {
     let i = 1;
 
-    while (true) {
+    while (i <= 88) {
         const baseUrl = 'https://www.legalbites.in/topics/articles';
-        let targetUrl = `${baseUrl}/`;
- 
+        let targetUrl = `${baseUrl}`;
+
+        if (i > 1) {
+            targetUrl = `${baseUrl}/${i}`;
+        }
+
         try {
             const response = await axios.get(targetUrl);
             const htmlContent = response.data;
 
             // Save HTML content to a file
-            const fileName = `legalbites.html`;  // for sitemap, better for web scrawling
+            const fileName = `legalbites.html`;  // for sitemap, better for web crawling
             const filePath = path.join(__dirname, fileName);
 
             fs.writeFileSync(filePath, htmlContent, 'utf-8');
 
             // Continue with the rest of your processing
             const $ = cheerio.load(htmlContent);
-            const elements = $('h2.title a').map((index, element) => $(element).attr('href')).get();
-            
-            const tasks = elements.map(element => getData(element));
+            const elements = $('h3.post-title a').map((index, element) => $(element).attr('href')).get();
+
+            // Modify URLs by removing the prefix and adding the base URL
+            const modifiedUrls = elements.map(element => {
+                const formattedElement = element.startsWith('/') ? element.substring(1) : element;
+                return `https://www.legalbites.in/${formattedElement.replace('/topics/articles/', '')}`;
+            });
+
+            const tasks = modifiedUrls.map(url => getData(url));
             const dataList = await Promise.all(tasks);
 
             updateFile(dataList);
- 
+
             i++;
         } catch (error) {
             console.error('Error:', error.message);

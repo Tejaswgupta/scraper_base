@@ -32,13 +32,11 @@ async function getData(url) {
         const response = await axios.get(url);
         const $ = cheerio.load(response.data);
 
-        const title = $('.title').text().trim();
-
-        // Select and extract text from <p> elements inside the div with id 'content'
-        const paragraphs = $('#content p').map((index, element) => $(element).text()).get();
-  
-        // Combine the text from paragraphs and list items
-        const dataString = paragraphs.concat(listItems).join('');
+        const title = $('.entry-title').text().trim(); 
+ 
+        const contentElements = $('.entry-content p, .entry-content ul li, .entry-content ol li').map((index, element) => $(element).text()).get();
+   
+        const dataString = contentElements.join('');
 
         const newsItem = {
             'headline': title, 
@@ -55,23 +53,25 @@ async function getData(url) {
 async function main() {
     let i = 1;
 
-    while (i <= 42) {
+    while (i <= 28) {
         const baseUrl = 'https://cyberblogindia.in/blog/';
-        let targetUrl = `${baseUrl}/`;
+        let targetUrl = `${baseUrl}`;
+
+        if(i > 1) {
+            targetUrl = `${baseUrl}page/${i}/?utm_source=feedspot`
+        }
  
         try {
             const response = await axios.get(targetUrl);
             const htmlContent = response.data;
-
-            // Save HTML content to a file
-            const fileName = `cyberblogindia.html`;  // for sitemap, better for web scrawling
+ 
+            const fileName = `cyberblogindia.html`;   
             const filePath = path.join(__dirname, fileName);
 
             fs.writeFileSync(filePath, htmlContent, 'utf-8');
-
-            // Continue with the rest of your processing
+ 
             const $ = cheerio.load(htmlContent);
-            const elements = $('h2.title a').map((index, element) => $(element).attr('href')).get();
+            const elements = $('h2.entry-title a').map((index, element) => $(element).attr('href')).get();
             
             const tasks = elements.map(element => getData(element));
             const dataList = await Promise.all(tasks);
