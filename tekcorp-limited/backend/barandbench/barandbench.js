@@ -1,6 +1,6 @@
-// https://barandbench.com - barandbench, Web Scrapping 
+// https://www.barandbench.com/ - barandbench, Web Scrapping
 
-// * Ask Tegas, which category to target * 
+// * Pending from Tejas, which specific category to target, its a huge site, due, to which getting confusion *
 
 const axios = require('axios');
 const path = require('path');
@@ -9,7 +9,7 @@ const fs = require('fs');
 
 const fileName = 'barandbench.json';
 
-function updateFile(dataList) { 
+function updateFile(dataList) {
     const filePath = path.join(__dirname, fileName);
 
     let existingData = [];
@@ -28,38 +28,37 @@ function updateFile(dataList) {
 
     fs.writeFileSync(filePath, JSON.stringify(combinedData, null, 2), 'utf-8');
 }
- 
+
 async function getData(url) {
     try {
         const response = await axios.get(url);
         const $ = cheerio.load(response.data);
 
-        const title = $('.arrow-component h1').text().trim(); 
-        const paragraphs = $('.arrow-component p').map((index, element) => $(element).text()).get();
-   
-        const dataString = paragraphs.concat(listItems).join('');
+        const title = $('.arr--story--headline-h1').text().trim();
+        const paragraphs = $('.arr--text-element p').map((index, element) => $(element).text()).get();
+
+        const dataString = paragraphs.join('');
 
         const newsItem = {
-            'headline': title, 
+            'headline': title,
             'data': dataString
         };
 
         return newsItem;
     } catch (error) {
         console.error('Error fetching data from:', url);
-        return {}; // Return null for unsuccessful requests
+        return {};
     }
 }
 
 async function main() {
-    let i = 1;
+    let i = 1; 
 
     while (true) {
-        const baseUrl = 'https://www.barandbench.com';
-        let targetUrl = `${baseUrl}`;
+        const baseUrl = `https://www.barandbench.com/news`;
 
         try {
-            const response = await axios.get(targetUrl);
+            const response = await axios.get(baseUrl);
             const htmlContent = response.data;
 
             // Save HTML content to a file
@@ -68,17 +67,19 @@ async function main() {
 
             fs.writeFileSync(filePath, htmlContent, 'utf-8');
 
-            // Continue with the rest of your processing
             const $ = cheerio.load(htmlContent);
+            const elements = $('.arr--headline a').map((index, element) => $(element).attr('href')).get();
 
-            // Updated selector to target the anchor tags directly
-            const elements = $('.arrow-component a').map((index, element) => {
-                const href = $(element).attr('href');
-                // Filter out URLs that don't start with 'https://www.barandbench.com/news'
-                return href.startsWith('https://www.barandbench.com/news') ? href : null;
-            }).get().filter(Boolean);
-   
-            const tasks = elements.map(element => getData(element));
+            // Filter out the URLs that are already in the Set
+            const uniqueElements = elements.filter(url => !uniqueUrls.has(url));
+
+            if (uniqueElements.length === 0) {
+                break; // No more pages
+            }
+  
+            // Add the unique URLs to the Set 
+
+            const tasks = uniqueElements.map(element => getData(element));
             const dataList = await Promise.all(tasks);
 
             updateFile(dataList);
@@ -91,4 +92,4 @@ async function main() {
     }
 }
 
-main();
+main(); 

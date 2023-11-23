@@ -33,7 +33,7 @@ async function getData(url) {
         const $ = cheerio.load(response.data);
 
         const title = $('.homeTitle h1').text().trim(); 
-        const paragraphs = $('.fsize16 p').map((index, element) => $(element).text()).get();
+        const paragraphs = $('.fsize16 p, .fsize16 ul li').map((index, element) => $(element).text()).get();
    
         const dataString = paragraphs.join('');
 
@@ -57,7 +57,7 @@ async function main() {
         let targetUrl = `${baseUrl}`;
  
         if(i > 1) {
-            targetUrl = `${baseUrl}/page/4449/`
+            targetUrl = `${baseUrl}/page/${i}/`
         }
         try {
             const response = await axios.get(targetUrl);

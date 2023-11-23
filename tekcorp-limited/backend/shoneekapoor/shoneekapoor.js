@@ -7,7 +7,7 @@ const fs = require('fs');
 
 const fileName = 'shoneekapoor.json';
 
-function updateFile(dataList) { 
+function updateFile(dataList) {
     const filePath = path.join(__dirname, fileName);
 
     let existingData = [];
@@ -26,29 +26,26 @@ function updateFile(dataList) {
 
     fs.writeFileSync(filePath, JSON.stringify(combinedData, null, 2), 'utf-8');
 }
- 
+
 async function getData(url) {
     try {
         const response = await axios.get(url);
         const $ = cheerio.load(response.data);
 
-        const title = $('.title').text().trim();
+        const title = $('.auto-container h2').text().trim();
+        const paragraphs = $('.text p, .text ol li').map((index, element) => $(element).text()).get();
 
-        // Select and extract text from <p> elements inside the div with id 'content'
-        const paragraphs = $('#content p').map((index, element) => $(element).text()).get();
-  
-        // Combine the text from paragraphs and list items
-        const dataString = paragraphs.concat(listItems).join('');
+        const dataString = paragraphs.join('');
 
         const newsItem = {
-            'headline': title, 
+            'headline': title,
             'data': dataString
         };
 
         return newsItem;
     } catch (error) {
         console.error('Error fetching data from:', url);
-        return null; // Return null for unsuccessful requests
+        return {};
     }
 }
 
@@ -56,11 +53,10 @@ async function main() {
     let i = 1;
 
     while (true) {
-        const baseUrl = 'https://shoneekapoor.com/';
-        let targetUrl = `${baseUrl}/`;
- 
+        const baseUrl = `https://www.shoneekapoor.com/articles/`;
+
         try {
-            const response = await axios.get(targetUrl);
+            const response = await axios.get(baseUrl);
             const htmlContent = response.data;
 
             // Save HTML content to a file
@@ -69,15 +65,18 @@ async function main() {
 
             fs.writeFileSync(filePath, htmlContent, 'utf-8');
 
-            // Continue with the rest of your processing
             const $ = cheerio.load(htmlContent);
-            const elements = $('h2.title a').map((index, element) => $(element).attr('href')).get();
-            
+            const elements = $('span.eael-entry-title a').map((index, element) => $(element).attr('href')).get();
+
+            if (elements.length === 0) {
+                break; // No more pages
+            }
+
             const tasks = elements.map(element => getData(element));
-            const dataList = await Promise.all(tasks);
+            const dataList = await Promise.all(tasks); // for parallelizing content, concurrent api calls, and fast/efficient way of extracting data
 
             updateFile(dataList);
- 
+
             i++;
         } catch (error) {
             console.error('Error:', error.message);
