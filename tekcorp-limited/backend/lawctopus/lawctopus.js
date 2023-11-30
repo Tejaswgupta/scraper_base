@@ -22,7 +22,10 @@ function updateFile(dataList) {
         console.log('Error reading existing data:', error);
     }
 
-    const combinedData = existingData.concat(dataList);
+    // Filter out null values before combining data
+    const validDataList = dataList.filter(item => item !== null);
+
+    const combinedData = existingData.concat(validDataList);
 
     fs.writeFileSync(filePath, JSON.stringify(combinedData, null, 2), 'utf-8');
 }
@@ -35,12 +38,13 @@ async function getData(url) {
         const title = $('.post-title').text().trim();  
         const paragraphs = $('.post-content h2, .post-content p, .post-content ul li').map((index, element) => $(element).text()).get();
     
-        let dataString = paragraphs.join('');
+        // Join paragraphs and clean up unwanted characters
+        let dataString = paragraphs.join('').replace(/[\n\t]+/g, ' ').replace(/[\s\u200B-\u200D\uFEFF]+/g, ' ');
  
         dataString = dataString.replace(/<img.*?>/g, '');
  
         if (title.startsWith('/*! elementor') && dataString === "") {
-            return {};
+            return null;
         }
 
         const newsItem = {
@@ -51,7 +55,7 @@ async function getData(url) {
         return newsItem;
     } catch (error) {
         console.error('Error fetching data from:', url);
-        return {}; // Return null for unsuccessful requests
+        return null; // Return null for unsuccessful requests
     }
 }
 

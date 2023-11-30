@@ -22,7 +22,10 @@ function updateFile(dataList) {
         console.log('Error reading existing data:', error);
     }
 
-    const combinedData = existingData.concat(dataList);
+    // Filter out null values before combining data
+    const validDataList = dataList.filter(item => item !== null);
+
+    const combinedData = existingData.concat(validDataList)
 
     fs.writeFileSync(filePath, JSON.stringify(combinedData, null, 2), 'utf-8');
 }
@@ -35,7 +38,8 @@ async function getData(url) {
         const title = $('.entry-title').text().trim();
         const paragraphs = $('.entry-content p, .entry-content h2, .entry-content ol li, .entry-content h3').map((index, element) => $(element).text()).get();
 
-        const dataString = paragraphs.join('');
+        // Join paragraphs and clean up unwanted characters
+        let dataString = paragraphs.join('').replace(/[\n\t]+/g, ' ').replace(/[\s\u200B-\u200D\uFEFF]+/g, ' ');
 
         const newsItem = {
             'headline': title,
@@ -45,7 +49,7 @@ async function getData(url) {
         return newsItem;
     } catch (error) {
         console.error('Error fetching data from:', url);
-        return {};
+        return null;
     }
 }
 

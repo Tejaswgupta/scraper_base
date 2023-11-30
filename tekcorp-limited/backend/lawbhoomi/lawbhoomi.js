@@ -5,8 +5,7 @@ const path = require('path');
 const cheerio = require('cheerio');
 const fs = require('fs');
 
-const fileName = 'lawbhoomi.json';
-const stateFileName = 'lawbhoomiCurrentPage.json';
+const fileName = 'lawbhoomi.json'; 
 
 function updateFile(dataList) {
     const filePath = path.join(__dirname, fileName);
@@ -23,7 +22,10 @@ function updateFile(dataList) {
         console.log('Error reading existing data:', error);
     }
 
-    const combinedData = existingData.concat(dataList);
+    // Filter out null values before combining data
+    const validDataList = dataList.filter(item => item !== null);
+
+    const combinedData = existingData.concat(validDataList);
 
     fs.writeFileSync(filePath, JSON.stringify(combinedData, null, 2), 'utf-8');
 }
@@ -34,9 +36,12 @@ async function getData(url) {
         const $ = cheerio.load(response.data);
 
         const title = $('.page-title').text().trim();
-        const paragraphs = $('.entry-content h2, .entry-content h3, .entry-content p, .entry-content ul li').map((index, element) => $(element).text()).get();
+        const paragraphs = $('.entry-content h2, .entry-content h3, .entry-content p, .entry-content ul li')
+            .map((index, element) => $(element).text().trim()) // Trim each paragraph
+            .get();
 
-        let dataString = paragraphs.join('');
+        // Join paragraphs and clean up unwanted characters
+        let dataString = paragraphs.join('').replace(/[\n\t]+/g, ' ').replace(/[\s\u200B-\u200D\uFEFF]+/g, ' ');
 
         const newsItem = {
             'headline': title,
@@ -46,7 +51,7 @@ async function getData(url) {
         return newsItem;
     } catch (error) {
         console.error('Error fetching data from:', url);
-        return {}; // Return {} for unsuccessful requests
+        return null; // Return null for unsuccessful requests
     }
 }
 
@@ -78,41 +83,22 @@ async function scrapePage(url) {
     }
 }
 
-async function main() {
-    let currentPage = 1;
+async function main() { 
     let i = 1;
 
-    const maxPages = 413;
-
-    // Read the current state from the file
-    try {
-        const stateFilePath = path.join(__dirname, stateFileName);
-        const stateData = fs.readFileSync(stateFilePath, 'utf-8');
-        const state = JSON.parse(stateData);
-
-        currentPage = state.currentPage;
-        console.log(`Resuming scraping from page ${currentPage}.`);
-    } catch (error) {
-        console.log('Starting scraping from the beginning.');
-    }
-
+    const maxPages = 417;
+ 
     const promises = [];
 
-    while (currentPage <= maxPages) {
+    while (i <= maxPages) {
         const baseUrl = 'https://lawbhoomi.com/';
-        const targetUrl = `${baseUrl}page/${currentPage}/`;
+        const targetUrl = `${baseUrl}page/${i}/`;
 
         promises.push(scrapePage(targetUrl).then(dataList => updateFile(dataList)));
-
-        currentPage++;
+ 
         i++;
     }
-
-    // Save the current state to the file
-    const stateFilePath = path.join(__dirname, stateFileName);
-    const state = { currentPage };
-    fs.writeFileSync(stateFilePath, JSON.stringify(state, null, 2), 'utf-8');
-
+  
     try {
         // Wait for all promises to resolve, for parallelizing the scrapping
         await Promise.all(promises);

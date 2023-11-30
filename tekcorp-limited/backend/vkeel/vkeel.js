@@ -22,7 +22,10 @@ function updateFile(dataList) {
         console.log('Error reading existing data:', error);
     }
 
-    const combinedData = existingData.concat(dataList);
+    // Filter out null values before combining data
+    const validDataList = dataList.filter(item => item !== null);
+
+    const combinedData = existingData.concat(validDataList)
 
     fs.writeFileSync(filePath, JSON.stringify(combinedData, null, 2), 'utf-8');
 }
@@ -34,14 +37,17 @@ async function getData(url) {
 
         const title = $('.blog-compact-item-content h3').text().trim();  
         
+        // Join paragraphs and clean up unwanted characters
+        let dataString = title.join('').replace(/[\n\t]+/g, ' ').replace(/[\s\u200B-\u200D\uFEFF]+/g, ' ');
+
         const newsItem = {
-            'headline': title, 
+            'headline': dataString, 
         };
 
         return newsItem;
     } catch (error) {
         console.error('Error fetching data from:', url);
-        return {}; // Return null for unsuccessful requests
+        return null; // Return null for unsuccessful requests
     }
 }
 

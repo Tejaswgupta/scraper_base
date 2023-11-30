@@ -1,5 +1,7 @@
 // https://groww.in/sitemap.xml - groww, Web Scrapping
 
+// * URL not working / ALSO MENTIONED TO TEGAS WITH A LIST OF NON-WORKING SITES *
+
 const axios = require('axios');
 const path = require('path');
 const cheerio = require('cheerio');

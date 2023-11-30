@@ -1,6 +1,6 @@
-// https://www.barandbench.com/ - barandbench, Web Scrapping
+// https://www.barandbench.com/ - barandbench 
 
-// * Pending from Tejas, which specific category to target, its a huge site, due, to which getting confusion *
+// * NO JSON FILE FOR THIS REQUIRES SUBSCRIPTION, TEJAS DENIED FOR WRITING SCRAPPER FOR THIS *
 
 const axios = require('axios');
 const path = require('path');

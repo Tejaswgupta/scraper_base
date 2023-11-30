@@ -1,5 +1,6 @@
-// https://www.barelaw.in/indian-courts-2/ - barelaw-indian-court, Web Scrapping
-// *URL not working*
+// https://www.barelaw.in/indian-courts-2/
+
+// * URL not working / ALSO MENTIONED TO TEGAS WITH A LIST OF NON-WORKING SITES *
 
 const axios = require('axios');
 const path = require('path');

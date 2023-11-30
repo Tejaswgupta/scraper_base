@@ -21,7 +21,10 @@ function updateFile(dataList) {
         console.log('Error reading existing data');
     }
 
-    const combinedData = existingData.concat(dataList);
+    // Filter out null values before combining data
+    const validDataList = dataList.filter(item => item !== null);
+
+    const combinedData = existingData.concat(validDataList);
 
     fs.writeFileSync(filePath, JSON.stringify(combinedData, null, 2), 'utf-8');
 }
@@ -61,7 +64,7 @@ async function getArticleId(title) {
         return articleData;
     } catch (error) {
         console.error('Error fetching data from API:', apiUrl );
-        return ""; 
+        return null; 
     }
 }
 
@@ -131,20 +134,18 @@ async function scrapePage(pageNumber) {
     try {
         const response = await axios.post(apiUrl, payload);
 
-        const dataList = await Promise.all(response.data.map(async item => {
-            let articleData = await getArticleId(item.vTitle);
+        const dataList = await Promise.all(response.data.map(async item => { 
 
             return {
                 headline: item.vTitle,
-                Paragraph: item.vPara,
-                articleData: articleData,
+                Paragraph: item.vPara.replace(/[\n\r\t]+/g, ' ').replace(/[\s\u200B-\u200D\uFEFF]+/g, ' ')
             };
         }));
 
         return dataList;
     } catch (error) {
         console.error('Error fetching data from API:', apiUrl );
-        throw error;
+        throw null;
     }
 }
 
